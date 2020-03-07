@@ -24,5 +24,8 @@ Optionally, you can also map other ports from Cloudera's container. For instance
 # Accessing the Getting Started Tutorial
 To access the tutorial, fire up your web browser and navigate to `http://127.0.0.1:9000`. You should see this:
 
+![img/cdh-getting-started.png]
+
+
 
 
