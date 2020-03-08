@@ -26,6 +26,6 @@ To access the tutorial, fire up your web browser and navigate to `http://127.0.0
 
 ![cdh-getting-started](./img/cdh-getting-started.png)
 
-
+Follow the tutorial steps from here.
 
 
