@@ -15,6 +15,4 @@ Resource management and scheduling: separates resource management (high-availabi
 Unlike the traditional MapReduce where the data needs to be loaded from the disk every time it is processed, the newer frameworks like Yarn, Tez and Spark allow in-memory caching of data. This is especially useful (in terms of performance) when you want to analyze data interactively or when the task at hand needs to access the data iteratively, e.g., like in machine learning applications. 
 
 # Flaw in the "Introduction to Apache Pig" Video?
-Pig: store B into 'userinfo.out' flaw in the video?
-
 At least if you use Cloudera's `cloudera/quickstart` Docker image and try to execute the commands shown in the "Introduction to Apache Pig" video from week 2, there seems to be a flaw in there. Specifically, The command `store B into 'userinfo.out'` stores the `userinfo.out` file **not** under `/user/cloudera/` but rather under `/user/root/` in HDFS. So if you exit `grunt`, the Apache Pig interactive shell, and run `hdfs dfs -ls /user/cloudera/` you won't see the `userinfo.out` file in contrast to what is shown in the video. To see it, you must `ls` into the `/user/root/directory`: execute `hdfs dfs -ls /user/root/`.
