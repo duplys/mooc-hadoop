@@ -120,3 +120,21 @@ away	1
 ```
 
 Now compare this output with the previous one.
+
+# Helpful Commands
+
+To quickly test the mapper outside of MapReduce and HDFS, use:
+
+```shell
+$ cat testfile1 | ./ your-mapper-program.py | sort
+```
+
+If you see the expected output, the mapper is working.
+
+To quickly test both the mapper and the reducer outside of MapReduce and HDFS, issue:
+
+```shell
+$ cat testfile* | ./ your-mapper-program.py | sort | ./ your-reducer-program.py
+```
+
+If both mapper and reducer work as expected, you should see all the `<word, total count>` pairs. If this check passes, you can try running in this MapReduce job in Hadoop. 
