@@ -16,7 +16,7 @@ Within the Docker container, create some data:
 
 ```shell
 [root@quickstart /]# echo "A long time ago in a galaxy far far away" > /home/cloudera/testfile1
-[root@quickstart /]# echo "Another episode of Stars Wars telling a story that happened in a far galaxy very long time ago" > /home/cloudera/testfile2
+[root@quickstart /]# echo "Another episode of Star Wars" > /home/cloudera/testfile2
 [root@quickstart /]#
 ```
 
