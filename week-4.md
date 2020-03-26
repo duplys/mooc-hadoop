@@ -1,4 +1,4 @@
-#Running the wordcount programming asignment with Cloudera's Docker container
+# Running the wordcount programming asignment with Cloudera's Docker container
 
 You can create the `wordcount_mapper.py` and `wordcount_reducer.py` files on your host machine and make them executable by issuing (still on your host machine):
 
@@ -138,3 +138,142 @@ $ cat testfile* | ./ your-mapper-program.py | sort | ./ your-reducer-program.py
 ```
 
 If both mapper and reducer work as expected, you should see all the `<word, total count>` pairs. If this check passes, you can try running in this MapReduce job in Hadoop. 
+
+
+# Programming assignment on joining data
+First, create the files `join1_FileA.txt`, `join1_FileB.txt`, `join1_mapper.py`, and `join1_reducer.py` (and `chmod +x` both Python scripts to make them executable). Before running the Cloudera container, we want to validate these files on the command line, i.e., without using Hadoop and its MapReduce framework. On the local host, try running:
+
+```shell
+$ cat join1_File*
+able,991
+about,11
+burger,15
+actor,22
+Jan-01 able,5
+Feb-02 about,3
+Mar-03 about,8
+Apr-04 able,13
+Feb-22 actor,3
+Feb-23 burger,5
+Mar-08 burger,2
+Dec-15 able,100
+$ cat join1_File* | ./join1_mapper.py
+able	991
+about	11
+burger	15
+actor	22
+able	Jan-01 5
+about	Feb-02 3
+about	Mar-03 8
+able	Apr-04 13
+actor	Feb-22 3
+burger	Feb-23 5
+burger	Mar-08 2
+able	Dec-15 100
+$ 
+``` 
+
+The mapper correctly moves the date into the value field. Now try to pipe this to the reducer:
+
+```shell
+$ cat join1_File* | ./join1_mapper.py | sort | ./join1_reducer.py 
+Apr-04 able 13 991
+Dec-15 able 100 991
+Jan-01 able 5 991
+Feb-02 about 3 11
+Mar-03 about 8 11
+Feb-22 actor 3 22
+Feb-23 burger 5 15
+Mar-08 burger 2 15
+$ 
+```
+
+If anything goes wrong with the above command, you need to fix the mapper or the reducer.
+
+To run the data joins in the Docker container, We can again use the `-v` option to access the above files within the Cloudera Docker container. But this time, to avoid passing 4 arguments to the Docker command, we'll mount the complete directory `joining-data-assignment` instead. Change into the root directory of this repository on the host machine and run:
+
+```shell
+$ docker run --hostname=quickstart.cloudera --privileged=true -p 8888:8888 -p 9000:80 -it --rm --name cloudera -v $(pwd)/joining-data-assignment:/home/cloudera/joining-data-assignment cloudera/quickstart /usr/bin/docker-quickstart
+```
+
+Next, we put the data in `join1_FileA.txt` and `join1_FileB.txt` into HDFS:
+
+```shell
+[root@quickstart /]# hdfs dfs -ls /user/cloudera
+[root@quickstart /]# hdfs dfs -ls /user/
+Found 8 items
+drwxr-xr-x   - cloudera cloudera            0 2016-04-06 02:25 /user/cloudera
+drwxr-xr-x   - mapred   hadoop              0 2016-04-06 02:26 /user/history
+drwxrwxrwx   - hive     supergroup          0 2016-04-06 02:27 /user/hive
+drwxrwxrwx   - hue      supergroup          0 2016-04-06 02:26 /user/hue
+drwxrwxrwx   - jenkins  supergroup          0 2016-04-06 02:26 /user/jenkins
+drwxrwxrwx   - oozie    supergroup          0 2016-04-06 02:27 /user/oozie
+drwxrwxrwx   - root     supergroup          0 2016-04-06 02:26 /user/root
+drwxr-xr-x   - hdfs     supergroup          0 2016-04-06 02:27 /user/spark
+[root@quickstart /]# hdfs dfs -mkdir /user/cloudera/joining-data-input
+[root@quickstart /]# hdfs dfs -ls /user/cloudera
+Found 1 items
+drwxr-xr-x   - root cloudera          0 2020-03-26 11:32 /user/cloudera/joining-data-input
+[root@quickstart /]# hdfs dfs -put /home/cloudera/joining-data-assignment/join1_FileA.txt /user/cloudera/joining-data-input
+[root@quickstart /]# hdfs dfs -put /home/cloudera/joining-data-assignment/join1_FileB.txt /user/cloudera/joining-data-input
+[root@quickstart /]# hdfs dfs -ls /user/cloudera/joining-data-input
+Found 2 items
+-rw-r--r--   1 root cloudera         37 2020-03-26 11:32 /user/cloudera/joining-data-input/join1_FileA.txt
+-rw-r--r--   1 root cloudera        122 2020-03-26 11:33 /user/cloudera/joining-data-input/join1_FileB.txt
+[root@quickstart /]#
+```
+
+We will now run the Hadoop MapReduce. In the Docker container, issue:
+
+```shell
+[root@quickstart cloudera]# hadoop jar /usr/lib/hadoop-mapreduce/hadoop-streaming.jar -input /user/cloudera/joining-data-input -output /user/cloudera/joining-data-output -mapper /home/cloudera/joining-data-assignment/join1_mapper.py -reducer /home/cloudera/joining-data-assignment/join1_reducer.py
+```
+
+Check the output of MapReduce:
+
+```shell
+[root@quickstart cloudera]# hdfs dfs -ls /user/cloudera/joining-data-output
+Found 2 items
+-rw-r--r--   1 root cloudera          0 2020-03-26 12:40 /user/cloudera/joining-data-output/_SUCCESS
+-rw-r--r--   1 root cloudera        157 2020-03-26 12:40 /user/cloudera/joining-data-output/part-00000
+[root@quickstart cloudera]# hdfs dfs -cat /user/cloudera/joining-data-output/part-00000
+Dec-15 able 100 991	
+Apr-04 able 13 991	
+Jan-01 able 5 991	
+Mar-03 about 8 11	
+Feb-02 about 3 11	
+Feb-22 actor 3 22	
+Feb-23 burger 5 15	
+Mar-08 burger 2 15	
+[root@quickstart cloudera]# 
+```
+
+## Part 2: A New Join Problem
+Run the shell script to generate the (random) data for the new join problem:
+
+```shell
+[root@quickstart cloudera]# cd joining-data-assignment/
+[root@quickstart joining-data-assignment]# ./make_data_join2.sh 
+[root@quickstart joining-data-assignment]# ls
+join1_FileA.txt  join1_mapper.py   join2_genchanA.txt  join2_genchanC.txt  join2_gennumB.txt  make_data_join2.sh
+join1_FileB.txt  join1_reducer.py  join2_genchanB.txt  join2_gennumA.txt   join2_gennumC.txt  make_join2data.py
+[root@quickstart joining-data-assignment]# 
+```
+
+Next, we put the data files `join2_*` into HDFS:
+
+```shell
+[root@quickstart joining-data-assignment]# hdfs dfs -mkdir /user/cloudera/join2-data-input
+[root@quickstart joining-data-assignment]# hdfs dfs -put join2_gen* /user/cloudera/join2-data-input/
+[root@quickstart joining-data-assignment]# hdfs dfs -ls /user/cloudera/join2-data-input/
+Found 6 items
+-rw-r--r--   1 root cloudera       1714 2020-03-26 17:07 /user/cloudera/join2-data-input/join2_genchanA.txt
+-rw-r--r--   1 root cloudera       3430 2020-03-26 17:07 /user/cloudera/join2-data-input/join2_genchanB.txt
+-rw-r--r--   1 root cloudera       5152 2020-03-26 17:07 /user/cloudera/join2-data-input/join2_genchanC.txt
+-rw-r--r--   1 root cloudera      17114 2020-03-26 17:07 /user/cloudera/join2-data-input/join2_gennumA.txt
+-rw-r--r--   1 root cloudera      34245 2020-03-26 17:07 /user/cloudera/join2-data-input/join2_gennumB.txt
+-rw-r--r--   1 root cloudera      51400 2020-03-26 17:07 /user/cloudera/join2-data-input/join2_gennumC.txt
+[root@quickstart joining-data-assignment]# 
+```
+
+
