@@ -276,4 +276,57 @@ Found 6 items
 [root@quickstart joining-data-assignment]# 
 ```
 
+Now, run MapReduce:
 
+```shell
+[root@quickstart joining-data-assignment]# hadoop jar /usr/lib/hadoop-mapreduce/hadoop-streaming.jar -input /user/cloudera/join2-data-input -output /user/cloudera/join2-data-output -mapper /home/cloudera/joining-data-assignment/join2_mapper.py -reducer /home/cloudera/joining-data-assignment/join2_reducer.py
+...
+[root@quickstart joining-data-assignment]# hdfs dfs -cat /user/cloudera/join2-data-output/part-00000
+Almost_Games 49237	
+Almost_News 46592	
+Almost_Show 50202	
+Baked_Games 51604	
+Baked_News 47211	
+Cold_News 47924	
+Cold_Sports 52005	
+Dumb_Show 53824	
+Dumb_Talking 103894	
+Hot_Games 50228	
+Hot_Show 54378	
+Hourly_Cooking 54208	
+Hourly_Show 48283	
+Hourly_Talking 108163	
+Loud_Games 49482	
+Loud_Show 50820	
+PostModern_Games 50644	
+PostModern_News 50021	
+Surreal_News 50420	
+Surreal_Sports 46834	
+[root@quickstart joining-data-assignment]# 
+```
+
+Remark: I personally find the assignment question ambiguous. "What is the total number of viewers for shows on ABC?" could mean that you need to find the total number of *ABC* viewers for shows that run on ABC. Based on the correct result of the MapReduce in this exercise, it turns out that the intended question is actually: "What is the total number of viewers across all channels for shows that are aired on ABC? (these shows could be aired on other channels as well)".
+
+To answer this question, we first need a mapper takes `<TV show, viewer count>` and `<TV show, channel>` pairs as input, and outputs `<TV show, viewer count>` pairs and `<TV show, channel>` pairs **if** channel is "ABC". In other words, the mapper will ouput pairs where the name of the TV show is the key and the viewer count or the channel the TV show is aired on is the value.  
+We then need a reducer that takes pairs `<TV show, viewer count>` and `<TV show, channel>` where channel is "ABC", and outputs pairs `<TV show<space>total viewer count>` with the total viewer count (across all channels) for shows that are aired on "ABC" (and, potentially, also on other channels).
+
+The above works because Hadoop's MapReduce sorts the mapper output like this
+
+```
+...
+Almost_Cooking,980
+Almost_Cooking,998
+Almost_Games,1006
+...
+Almost_Games,996
+Almost_Games,ABC
+Almost_News,1003
+Almost_News,101
+...
+```
+
+So if we process the above mapper output line by line, keep the running total viewer count for a TV show and:
+  1. the key (i.e., the TV show name) changes, and 
+  2. the last pair had "ABC" as its value,
+
+then the running total contains the sum of all viewers of this show (across all channels) and because the value of the last line (before the key changed) is "ABC", we know that this show is aired on ABC as well. Thus, we can print the pair `<TV show, total viewer count>` to answer the question: "what is the total number of viewers for shows on ABC?".
