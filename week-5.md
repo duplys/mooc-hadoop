@@ -53,7 +53,7 @@ object?   -> Details about 'object', use 'object??' for extra details.
 In [1]:
 ```
 
-In the pyspakt shell, type
+In the pyspark shell, type
 
 ```shell
 In [7]: from pyspark import SparkContext
@@ -156,5 +156,84 @@ In [11]: integer_RDD.glom().collect()
 Out[11]: [[0, 1, 2], [3, 4, 5], [6, 7, 8, 9]]
 ```
 
+## `commit`ing the Docker image with IPython installed
+
+We'll exit the IPython shell to commit the changes done to the original Cloudera Docker container. Our goal is to make these changes (i.e., IPython installation) permanent because this will be needed in the upcoming programming assignments. To save the changes, we can use Docker's `commit` command. On the host machine:
+
+```shell
+paul@terminus:~/Repositories/MOOCs/mooc-hadoop$ docker container ps
+CONTAINER ID        IMAGE                 COMMAND                  CREATED             STATUS              PORTS                                          NAMES
+58391bed2e91        cloudera/quickstart   "/usr/bin/docker-qui…"   18 minutes ago      Up 18 minutes       0.0.0.0:8888->8888/tcp, 0.0.0.0:9000->80/tcp   cloudera
+paul@terminus:~/Repositories/MOOCs/mooc-hadoop$ docker commit 58391bed2e91 cloudera-ipython
+sha256:7670933af2f9b31536b39b81649e9c3d72e0eba460d411e7d45f64493e26bb46
+paul@terminus:~/Repositories/MOOCs/mooc-hadoop$ 
+```
 
 
+# Programming Assignment "Simple Join in Spark"
+
+To start the Docker container:
+
+```shell
+$ docker run --hostname=quickstart.cloudera --privileged=true -p 8888:8888 -p 9000:80 -it --rm --name cloudera -v $(pwd)/simple-join-in-spark:/home/cloudera/simple-join-in-spark cloudera/quickstart /usr/bin/docker-quickstart
+```
+First, we need to put the data files `join1_FileA.txt` and `join`_FileB.txt` into HDFS.
+
+```shell
+[root@quickstart simple-join-in-spark]# hdfs dfs -mkdir /user/cloudera/input
+[root@quickstart simple-join-in-spark]# hdfs dfs -put join1_FileA.txt /user/cloudera/input/
+[root@quickstart simple-join-in-spark]# hdfs dfs -put join1_FileB.txt /user/cloudera/input/
+[root@quickstart simple-join-in-spark]# hdfs dfs -ls /user/cloudera/
+Found 1 items
+drwxr-xr-x   - root cloudera          0 2020-04-13 12:26 /user/cloudera/input
+[root@quickstart simple-join-in-spark]# hdfs dfs -ls /user/cloudera/input
+Found 2 items
+-rw-r--r--   1 root cloudera         37 2020-04-13 12:26 /user/cloudera/input/join1_FileA.txt
+-rw-r--r--   1 root cloudera        122 2020-04-13 12:26 /user/cloudera/input/join1_FileB.txt
+[root@quickstart spark-assigment]# export PYSPARK_DRIVER_PYTHON=ipython
+[root@quickstart spark-assigment]# pyspark mapper.py
+...
+[(u'able', (u'Jan-01 5', 991)), (u'able', (u'Apr-04 13', 991)), (u'able', (u'Dec-15 100', 991)), (u'burger', (u'Feb-23 5', 15)), (u'burger', (u'Mar-08 2', 15)), (u'about', (u'Feb-02 3', 11)), (u'about', (u'Mar-03 8', 11)), (u'actor', (u'Feb-22 3', 22))]
+...
+```
+
+Copy the expression 
+
+	(u'actor', (u'Feb-22 3', 22)) 
+
+into a file named `spark_join1.txt` and upload it to Coursera.
+
+
+# Programming Assignment "Advanced Join in Spark"
+
+Start the Docker container:
+
+```shell
+$ docker run --hostname=quickstart.cloudera --privileged=true -p 8888:8888 -p 9000:80 -it --rm --name cloudera -v $(pwd)/advanced-join-in-spark:/home/cloudera/advanced-join-in-spark cloudera-ipython /usr/bin/docker-quickstart
+```
+
+Import the input data into HDFS:
+
+```shell
+[root@quickstart /]# cd /home/cloudera/advanced-join-in-spark/
+[root@quickstart advanced-join-in-spark]# ls
+make_data_join2.sh  make_join2data.py
+[root@quickstart advanced-join-in-spark]# hdfs dfs -ls /user/cloudera/
+[root@quickstart advanced-join-in-spark]# hdfs dfs -mkdir /user/cloudera/input
+[root@quickstart advanced-join-in-spark]# ./make_data_join2.sh 
+[root@quickstart advanced-join-in-spark]# ls
+join2_genchanA.txt  join2_genchanB.txt  join2_genchanC.txt  join2_gennumA.txt  join2_gennumB.txt  join2_gennumC.txt  make_data_join2.sh  make_join2data.py
+[root@quickstart advanced-join-in-spark]# hdfs dfs -put join2_gen*.txt /user/cloudera/input
+[root@quickstart advanced-join-in-spark]# hdfs dfs -ls /user/cloudera/input/
+Found 6 items
+-rw-r--r--   1 root cloudera       1714 2020-04-13 16:03 /user/cloudera/input/join2_genchanA.txt
+-rw-r--r--   1 root cloudera       3430 2020-04-13 16:03 /user/cloudera/input/join2_genchanB.txt
+-rw-r--r--   1 root cloudera       5152 2020-04-13 16:03 /user/cloudera/input/join2_genchanC.txt
+-rw-r--r--   1 root cloudera      17114 2020-04-13 16:03 /user/cloudera/input/join2_gennumA.txt
+-rw-r--r--   1 root cloudera      34245 2020-04-13 16:03 /user/cloudera/input/join2_gennumB.txt
+-rw-r--r--   1 root cloudera      51400 2020-04-13 16:03 /user/cloudera/input/join2_gennumC.txt
+[root@quickstart advanced-join-in-spark]# export PYSPARK_DRIVER_PYTHON=ipython
+[root@quickstart advanced-join-in-spark]# pyspark advanced_join.py
+...
+```
+Copy the viewer number for the `BAT` channel into a textfile (see the assignment description) and upload it.
